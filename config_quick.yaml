@@ -1,0 +1,30 @@
+# Small, fast configuration for smoke tests and demos (~1-2 minutes).
+extends: config.yaml
+
+project:
+  output_dir: outputs_quick
+
+data:
+  start: "2017-01-01 00:00"
+  end: "2019-12-31 23:00"
+  max_regions: 6
+  events_per_region_year:
+    flood: 5.0
+    landslide: 4.0
+
+split:
+  train_end: "2017-12-31 23:00"
+  val_end: "2018-12-31 23:00"
+
+models:
+  random_forest:
+    n_estimators: 60
+  xgboost:
+    n_estimators: 200
+  lightgbm:
+    n_estimators: 200
+  sequence:
+    window: 24
+    hidden: 32
+    epochs: 2
+    max_val_windows: 20000

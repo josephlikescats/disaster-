@@ -1,0 +1,100 @@
+# AI-Based Disaster Risk Prediction System - main configuration.
+# All paths are relative to the project root.
+
+project:
+  seed: 42
+  output_dir: outputs
+
+data:
+  # synthetic  : fully offline, physically-motivated simulation (default)
+  # nasa_power : real hourly meteorology from NASA POWER for each region;
+  #              hydrology derived from real rainfall; events from
+  #              `event_inventory` if given, otherwise simulated
+  # csv        : your own integrated hourly dataset (see README for schema)
+  source: synthetic
+  regions_file: data/regions.csv
+  start: "2016-01-01 00:00"
+  end: "2020-12-31 23:00"
+  cache_dir: data/raw
+  event_inventory: null        # e.g. data/event_inventory.csv
+  csv_path: null               # used when source == csv
+  # Sensor problems injected into simulated observations (synthetic source only) so the
+  # preprocessing stage has realistic work to do.
+  inject_sensor_issues: true
+  missing_rate: 0.01
+  outlier_rate: 0.001
+  # Target average event onsets per region per year used by the simulator.
+  events_per_region_year:
+    flood: 3.0
+    landslide: 2.5
+  refractory_hours: 48
+  hazard_sharpness: 3.0        # >1 concentrates simulated onsets in extreme conditions
+  hazard_latent_noise: 0.3     # std of unobserved slowly-varying hazard factors
+
+preprocessing:
+  interpolation_limit_hours: 12
+  spike_thresholds:            # isolated single-hour jumps larger than this are removed
+    temperature_c: 8.0
+    humidity_pct: 40.0
+    river_level_m: 2.5
+    wind_speed_ms: 15.0
+
+features:
+  warmup_hours: 720            # drop first 30 days (incomplete rolling windows)
+
+targets:
+  hazards: [flood, landslide]
+  horizons: [1, 6, 24]         # hours ahead
+
+split:
+  train_end: "2018-12-31 23:00"
+  val_end: "2019-12-31 23:00"  # everything after is the held-out test set
+
+models:
+  enabled: [logistic_regression, random_forest, xgboost, lightgbm, lstm, gru]
+  negative_stride: 3           # keep every 3rd negative hour for tabular training (all positives kept)
+  calibration: sigmoid         # sigmoid (Platt) | isotonic - fitted on the validation year
+  logistic_regression:
+    C: 0.5
+  random_forest:
+    n_estimators: 200
+    max_depth: 14
+    min_samples_leaf: 20
+    max_features: sqrt
+  xgboost:
+    n_estimators: 600
+    max_depth: 5
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+    min_child_weight: 5
+    early_stopping_rounds: 50
+  lightgbm:
+    n_estimators: 600
+    num_leaves: 31
+    learning_rate: 0.05
+    subsample: 0.8
+    subsample_freq: 1
+    colsample_bytree: 0.8
+    min_child_samples: 40
+    early_stopping_rounds: 50
+  sequence:
+    window: 48                 # look-back hours
+    hidden: 64
+    layers: 2
+    dropout: 0.2
+    epochs: 12
+    batch_size: 512
+    lr: 0.001
+    patience: 3
+    stride: 3                  # negative endpoint stride for training windows
+    max_val_windows: 60000
+
+risk:
+  thresholds: [0.25, 0.50, 0.75]
+  labels: [Low, Medium, High, Severe]
+  alert_level: High            # alerts are raised at or above this level
+
+evaluation:
+  calibration_bins: 10
+  lead_time_horizon: 24        # model horizon used for warning lead-time analysis

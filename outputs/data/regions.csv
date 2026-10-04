@@ -1,0 +1,15 @@
+region_id,name,state,lat,lon,elevation_m,slope_deg,aspect_deg,soil_type,land_cover,ndvi_base,dist_river_km,impervious_frac,rain_factor
+ALP,Alappuzha,Kerala,9.5,76.34,3,1,270,clay,wetland,0.55,0.8,0.12,0.95
+EKM,Ernakulam,Kerala,9.98,76.3,40,3,265,clay,urban,0.45,1.2,0.35,1.0
+IDK,Idukki,Kerala,9.85,76.97,1100,22,230,loam,forest,0.75,2.5,0.03,1.3
+KKD,Kozhikode,Kerala,11.26,75.78,200,11,250,laterite,mixed,0.6,2.0,0.18,1.15
+KLM,Kollam,Kerala,8.89,76.61,120,5,240,laterite,mixed,0.58,3.5,0.15,0.85
+KNR,Kannur,Kerala,11.87,75.37,220,11,255,laterite,mixed,0.6,2.5,0.12,1.15
+KSD,Kasaragod,Kerala,12.5,74.99,180,9,260,laterite,mixed,0.55,3.0,0.08,1.1
+KTM,Kottayam,Kerala,9.59,76.52,80,5,250,clay,cropland,0.62,1.5,0.1,1.0
+MLP,Malappuram,Kerala,11.07,76.07,150,10,245,laterite,mixed,0.58,2.5,0.12,1.05
+PKD,Palakkad,Kerala,10.78,76.65,250,8,220,sandy,cropland,0.5,3.0,0.08,0.7
+PTA,Pathanamthitta,Kerala,9.26,76.79,400,14,235,loam,forest,0.7,2.0,0.05,1.05
+TSR,Thrissur,Kerala,10.52,76.21,60,4,255,laterite,cropland,0.55,2.0,0.15,0.95
+TVM,Thiruvananthapuram,Kerala,8.52,76.94,150,6,250,laterite,urban,0.52,4.0,0.28,0.75
+WYD,Wayanad,Kerala,11.69,76.13,850,18,225,loam,forest,0.72,3.0,0.04,1.25

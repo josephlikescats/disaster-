@@ -1,0 +1,37 @@
+{
+  "rows_in": 157680,
+  "rows_after_alignment": 157680,
+  "missing_before": {
+    "rainfall_mm": 1491,
+    "temperature_c": 1599,
+    "humidity_pct": 1623,
+    "wind_speed_ms": 1567,
+    "soil_moisture": 1513,
+    "river_level_m": 1591,
+    "ndvi": 1625
+  },
+  "out_of_bounds": {
+    "rainfall_mm": 157,
+    "temperature_c": 149,
+    "humidity_pct": 157,
+    "wind_speed_ms": 157,
+    "soil_moisture": 157,
+    "river_level_m": 0,
+    "ndvi": 157
+  },
+  "spikes": {
+    "temperature_c": 5,
+    "humidity_pct": 0,
+    "river_level_m": 156,
+    "wind_speed_ms": 0
+  },
+  "missing_after": {
+    "rainfall_mm": 0,
+    "temperature_c": 0,
+    "humidity_pct": 0,
+    "wind_speed_ms": 0,
+    "soil_moisture": 0,
+    "river_level_m": 0,
+    "ndvi": 0
+  }
+}

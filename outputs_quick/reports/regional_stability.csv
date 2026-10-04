@@ -1,0 +1,13 @@
+model,target,region_id,positives,roc_auc,pr_auc
+xgboost,y_flood_24h,ALP,600,0.8605818788921664,0.27657467551950393
+xgboost,y_flood_24h,IDK,0,,
+xgboost,y_flood_24h,KKD,24,0.9809458218549127,0.5070580158227728
+xgboost,y_flood_24h,KTM,168,0.8138095515984172,0.08086777974598823
+xgboost,y_flood_24h,PKD,0,,
+xgboost,y_flood_24h,TVM,0,,
+xgboost,y_landslide_24h,ALP,0,,
+xgboost,y_landslide_24h,IDK,552,0.8903363491152761,0.378636120358153
+xgboost,y_landslide_24h,KKD,48,0.7625868055555557,0.013297561843072882
+xgboost,y_landslide_24h,KTM,0,,
+xgboost,y_landslide_24h,PKD,0,,
+xgboost,y_landslide_24h,TVM,0,,

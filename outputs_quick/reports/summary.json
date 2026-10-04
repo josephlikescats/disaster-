@@ -1,0 +1,164 @@
+{
+  "meta": {
+    "source": "synthetic",
+    "regions": [
+      "ALP",
+      "IDK",
+      "KKD",
+      "KTM",
+      "PKD",
+      "TVM"
+    ],
+    "weather_source": "synthetic",
+    "label_source": "simulated"
+  },
+  "config": {
+    "project": {
+      "seed": 42,
+      "output_dir": "outputs_quick"
+    },
+    "data": {
+      "source": "synthetic",
+      "regions_file": "data/regions.csv",
+      "start": "2017-01-01 00:00",
+      "end": "2019-12-31 23:00",
+      "cache_dir": "data/raw",
+      "event_inventory": null,
+      "csv_path": null,
+      "inject_sensor_issues": true,
+      "missing_rate": 0.01,
+      "outlier_rate": 0.001,
+      "events_per_region_year": {
+        "flood": 5.0,
+        "landslide": 4.0
+      },
+      "refractory_hours": 48,
+      "hazard_sharpness": 3.0,
+      "hazard_latent_noise": 0.3,
+      "max_regions": 6
+    },
+    "preprocessing": {
+      "interpolation_limit_hours": 12,
+      "spike_thresholds": {
+        "temperature_c": 8.0,
+        "humidity_pct": 40.0,
+        "river_level_m": 2.5,
+        "wind_speed_ms": 15.0
+      }
+    },
+    "features": {
+      "warmup_hours": 720
+    },
+    "targets": {
+      "hazards": [
+        "flood",
+        "landslide"
+      ],
+      "horizons": [
+        1,
+        6,
+        24
+      ]
+    },
+    "split": {
+      "train_end": "2017-12-31 23:00",
+      "val_end": "2018-12-31 23:00"
+    },
+    "models": {
+      "enabled": [
+        "logistic_regression",
+        "random_forest",
+        "xgboost",
+        "lightgbm",
+        "lstm",
+        "gru"
+      ],
+      "negative_stride": 3,
+      "calibration": "sigmoid",
+      "logistic_regression": {
+        "C": 0.5
+      },
+      "random_forest": {
+        "n_estimators": 60,
+        "max_depth": 14,
+        "min_samples_leaf": 20,
+        "max_features": "sqrt"
+      },
+      "xgboost": {
+        "n_estimators": 200,
+        "max_depth": 5,
+        "learning_rate": 0.05,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "min_child_weight": 5,
+        "early_stopping_rounds": 50
+      },
+      "lightgbm": {
+        "n_estimators": 200,
+        "num_leaves": 31,
+        "learning_rate": 0.05,
+        "subsample": 0.8,
+        "subsample_freq": 1,
+        "colsample_bytree": 0.8,
+        "min_child_samples": 40,
+        "early_stopping_rounds": 50
+      },
+      "sequence": {
+        "window": 24,
+        "hidden": 32,
+        "layers": 2,
+        "dropout": 0.2,
+        "epochs": 2,
+        "batch_size": 512,
+        "lr": 0.001,
+        "patience": 3,
+        "stride": 3,
+        "max_val_windows": 20000
+      }
+    },
+    "risk": {
+      "thresholds": [
+        0.25,
+        0.5,
+        0.75
+      ],
+      "labels": [
+        "Low",
+        "Medium",
+        "High",
+        "Severe"
+      ],
+      "alert_level": "High"
+    },
+    "evaluation": {
+      "calibration_bins": 10,
+      "lead_time_horizon": 24
+    }
+  },
+  "best_model_per_hazard": {
+    "landslide": "xgboost",
+    "flood": "xgboost"
+  },
+  "alert_probability": 0.5,
+  "timings_s": {
+    "data acquisition & integration": 2.1,
+    "preprocessing": 0.7,
+    "exploratory analysis": 1.3,
+    "feature engineering & validation": 2.7,
+    "train logistic_regression": 4.1,
+    "train random_forest": 4.7,
+    "train xgboost": 8.9,
+    "train lightgbm": 7.5,
+    "train lstm": 13.0,
+    "train gru": 16.5,
+    "evaluation": 6.0,
+    "figures": 4.6
+  },
+  "n_features": 62,
+  "split_rows": {
+    "test": 52416,
+    "val": 52416,
+    "train": 48096,
+    "gap": 288
+  }
+}
