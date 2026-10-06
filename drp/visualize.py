@@ -21,9 +21,17 @@ MODEL_COLORS = {
     "logistic_regression": "#2a78d6", "random_forest": "#eb6834", "xgboost": "#1baf7a",
     "lightgbm": "#eda100", "lstm": "#e87ba4", "gru": "#008300",
 }
+# Same six models lifted for legibility on the dark dashboard surface; hue identity is preserved,
+# the two greens stay separated by lightness exactly as they are in the print palette.
+MODEL_COLORS_DARK = {
+    "logistic_regression": "#5aa0f5", "random_forest": "#ff8f5e", "xgboost": "#1baf7a",
+    "lightgbm": "#ffc43d", "lstm": "#ff9ec4", "gru": "#7ee787",
+}
 HAZARD_COLORS = {"flood": "#2a78d6", "landslide": "#eb6834"}
 # Status palette: risk levels always shipped with their text label.
 RISK_COLORS = {"Low": "#0ca30c", "Medium": "#fab219", "High": "#ec835a", "Severe": "#d03b3b"}
+# Same four levels lifted for legibility on the dark dashboard surface.
+RISK_COLORS_DARK = {"Low": "#2ecc71", "Medium": "#ffc43d", "High": "#ff8c42", "Severe": "#ff4d5e"}
 INK, INK2, MUTED, GRID, AXIS, SURFACE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7", "#fcfcfb"
 DIVERGING = LinearSegmentedColormap.from_list("blue_gray_red", ["#104281", "#5598e7", "#f0efec", "#e66767", "#a32626"])
 
@@ -180,18 +188,32 @@ def risk_timeline(frame: pd.DataFrame, prob_col: str, event_col: str, region: st
 
 
 def risk_map(snapshot: pd.DataFrame, prob_col: str, thresholds, title: str, out: Path):
-    levels = categorize(snapshot[prob_col], thresholds)
-    fig, ax = plt.subplots(figsize=(5.5, 7))
+    """District map (marker size scales with probability) beside a ranked bar chart."""
+    snap = snapshot.sort_values(prob_col)
+    levels = categorize(snap[prob_col], thresholds)
+    fig, (ax, bar) = plt.subplots(1, 2, figsize=(10, 7), gridspec_kw={"width_ratios": [1, 1.1]})
     for lvl in RISK_LEVELS:
-        m = levels == lvl
-        ax.scatter(snapshot.loc[m, "lon"], snapshot.loc[m, "lat"], s=260, color=RISK_COLORS[lvl],
-                   edgecolor=SURFACE, linewidth=2, label=lvl, zorder=3)
-    for _, r in snapshot.iterrows():
-        ax.annotate(f"{r['region_id']}  {r[prob_col]:.2f}", (r["lon"], r["lat"]), xytext=(10, -3),
-                    textcoords="offset points", fontsize=8, color=INK2)
-    ax.set(xlabel="Longitude", ylabel="Latitude", title=title)
+        m = np.asarray(levels) == lvl
+        ax.scatter(snap.loc[m, "lon"], snap.loc[m, "lat"], s=120 + 900 * snap.loc[m, prob_col],
+                   color=RISK_COLORS[lvl], edgecolor=SURFACE, linewidth=2, label=lvl, zorder=3, alpha=0.9)
+    for _, r in snap.iterrows():
+        ax.annotate(r["region_id"], (r["lon"], r["lat"]), xytext=(12, -3), textcoords="offset points",
+                    fontsize=8, color=INK2)
+    ax.set(xlabel="Longitude", ylabel="Latitude", title="Where")
     ax.set_aspect("equal")
-    ax.legend(title="Risk level", loc="lower left", fontsize=8)
+    ax.margins(0.15)
+    ax.legend(handles=[plt.Line2D([], [], marker="o", linestyle="", markersize=9, color=RISK_COLORS[l], label=l)
+                       for l in RISK_LEVELS], title="Risk level", loc="lower left", fontsize=8)
+    names = snap["name"] if "name" in snap else snap["region_id"]
+    bar.barh(names, snap[prob_col], color=[RISK_COLORS[l] for l in np.asarray(levels)], height=0.7)
+    for y, v in enumerate(snap[prob_col]):
+        bar.text(v + 0.01, y, f"{v:.2f}", va="center", fontsize=8, color=INK2)
+    for t in thresholds:
+        bar.axvline(t, color=AXIS, linestyle="--", linewidth=1)
+    bar.set(xlim=(0, min(1.0, max(float(snap[prob_col].max()) * 1.15, thresholds[0] * 1.2))),
+            xlabel="Probability", title="How likely")
+    bar.grid(axis="y", visible=False)
+    fig.suptitle(title, x=0.01, ha="left", fontweight="bold", fontsize=13)
     return _save(fig, out)
 
 

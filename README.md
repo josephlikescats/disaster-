@@ -181,6 +181,21 @@ matplotlib, plotly, streamlit, pyyaml, requests, joblib and pytest.
 
 ## Running the project
 
+### 0. Start to finish, from a fresh clone
+
+```bash
+pip install -r requirements.txt     # once
+python run_pipeline.py              # full run, ~20 min; writes everything into outputs/
+streamlit run app/dashboard.py      # opens http://localhost:8501
+```
+
+In a hurry, swap the middle line for `python run_pipeline.py --config config_quick.yaml`
+(~2 min) and start the dashboard with `streamlit run app/dashboard.py -- --outputs outputs_quick`.
+
+> **The pipeline must run before the dashboard.** `outputs/` and `outputs_quick/` hold generated
+> models, figures and parquet files, so they are **not** tracked in git. A fresh clone has no
+> outputs until you run the pipeline once, and the dashboard will tell you so rather than start.
+
 ### 1. Quick run (about 2 minutes), to start with
 
 ```bash
@@ -236,6 +251,9 @@ streamlit run app/dashboard.py -- --outputs outputs_quick   # reads ./outputs_qu
 
 It opens in your browser at <http://localhost:8501>. In the **sidebar**, pick the hazard (flood or
 landslide), the forecast horizon (1 / 6 / 24 h) and the model. The best model is pre-selected.
+
+Stop it with `Ctrl+C` in the terminal it is running in. Streamlit reloads code changes on its own,
+but the theme in `.streamlit/config.toml` is read **only at startup**, so restart after editing it.
 
 | Tab | What it shows |
 |---|---|
@@ -470,6 +488,10 @@ config.yaml              main configuration
 config_quick.yaml        fast configuration (extends config.yaml)
 run_pipeline.py          command-line entry point
 requirements.txt         Python dependencies
+.streamlit/config.toml   dashboard theme (read at startup only)
+
+Disaster_Risk_Prediction_Quick_Guide.pdf   10-page summary for presenting the project
+Disaster_Risk_Prediction_Explained.pdf     32-page full walkthrough of code, data and models
 
 drp/                     the main package
 ├── config.py            loads YAML config (with `extends`)
@@ -509,6 +531,8 @@ outputs/, outputs_quick/ results of the full and quick runs
 |---|---|
 | `ModuleNotFoundError: No module named 'drp'` | Run commands from the project root folder, not from inside `drp/` or `app/`. |
 | Dashboard says files are missing | Run the pipeline first, and point the dashboard at the right folder (`-- --outputs outputs_quick`). Note the extra `--`. |
+| `Port 8501 is already in use` | An older dashboard is still running. Either reuse that tab, or stop it and start again: `netstat -ano \| findstr :8501` to get the process ID, then `taskkill /PID <id> /F` (Windows) or `lsof -ti:8501 \| xargs kill` (macOS/Linux). Alternatively start on another port with `--server.port 8502`. |
+| Dashboard looks stale or unstyled | You are viewing an instance started before the change. Restart it; theme edits in particular need a restart. |
 | `torch` fails to install | Install PyTorch for your platform from <https://pytorch.org/get-started/locally/>, then run `pip install -r requirements.txt` again. To skip the neural networks, run with `--models logistic_regression,random_forest,xgboost,lightgbm`. |
 | NASA POWER download fails or times out | The client retries automatically. Check your internet connection and run again. Already-downloaded years are cached in `data/raw/`. |
 | Full run is too slow | Use `config_quick.yaml`, drop `lstm,gru` with `--models`, or lower `models.sequence.epochs`. |

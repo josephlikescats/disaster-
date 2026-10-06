@@ -1,7 +1,0 @@
-region_id,name,state,lat,lon,elevation_m,slope_deg,aspect_deg,soil_type,land_cover,ndvi_base,dist_river_km,impervious_frac,rain_factor
-ALP,Alappuzha,Kerala,9.5,76.34,3,1,270,clay,wetland,0.55,0.8,0.12,0.95
-IDK,Idukki,Kerala,9.85,76.97,1100,22,230,loam,forest,0.75,2.5,0.03,1.3
-KKD,Kozhikode,Kerala,11.26,75.78,200,11,250,laterite,mixed,0.6,2.0,0.18,1.15
-KTM,Kottayam,Kerala,9.59,76.52,80,5,250,clay,cropland,0.62,1.5,0.1,1.0
-PKD,Palakkad,Kerala,10.78,76.65,250,8,220,sandy,cropland,0.5,3.0,0.08,0.7
-TVM,Thiruvananthapuram,Kerala,8.52,76.94,150,6,250,laterite,urban,0.52,4.0,0.28,0.75

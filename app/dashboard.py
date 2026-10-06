@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 import streamlit as st
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +24,8 @@ sys.path.insert(0, str(ROOT))
 
 from drp.models import DISPLAY_NAMES  # noqa: E402
 from drp.risk import DECISIONS, RISK_LEVELS, categorize, level_index  # noqa: E402
-from drp.visualize import MODEL_COLORS, RISK_COLORS  # noqa: E402
+from drp.visualize import MODEL_COLORS_DARK as MODEL_COLORS  # noqa: E402
+from drp.visualize import RISK_COLORS_DARK as RISK_COLORS  # noqa: E402
 
 FEATURE_LABELS = {
     "rain_sum_72h": ("72 h rainfall", "mm"), "rain_sum_24h": ("24 h rainfall", "mm"),
@@ -40,7 +42,69 @@ FEATURE_LABELS = {
     "elevation_m": ("elevation", "m"), "humidity_pct": ("humidity", "%"),
 }
 
-st.set_page_config(page_title="Disaster Risk Early Warning", layout="wide")
+st.set_page_config(page_title="Disaster Risk Early Warning", page_icon=":material/warning:",
+                   layout="wide", initial_sidebar_state="expanded")
+
+# Console surface tokens. These mirror .streamlit/config.toml so Python-drawn charts and the page
+# chrome stay on one palette; every Plotly figure inherits them through the "drp" template below.
+BG, PANEL, LINE, INK, MUTED, FAINT = "#0e1117", "#161b26", "#2a3140", "#e8eaf0", "#9aa4b8", "#232a38"
+ACCENT = "#4f9dff"
+
+pio.templates["drp"] = go.layout.Template(layout=dict(
+    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+    font=dict(color=INK, size=13),
+    title=dict(font=dict(color=INK, size=15)),
+    xaxis=dict(gridcolor=FAINT, zerolinecolor=LINE, linecolor=LINE, tickfont=dict(color=MUTED),
+               title=dict(font=dict(color=MUTED))),
+    yaxis=dict(gridcolor=FAINT, zerolinecolor=LINE, linecolor=LINE, tickfont=dict(color=MUTED),
+               title=dict(font=dict(color=MUTED))),
+    legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color=MUTED)),
+    hoverlabel=dict(bgcolor=PANEL, bordercolor=LINE, font=dict(color=INK)),
+    colorway=list(MODEL_COLORS.values()),
+))
+pio.templates.default = "drp"
+
+st.markdown(f"""
+<style>
+.block-container {{padding-top: 1.4rem; padding-bottom: 3rem; max-width: 1500px;}}
+h1, h2, h3 {{letter-spacing: -0.015em;}}
+
+/* header band */
+.drp-head {{display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    border-bottom: 1px solid {LINE}; padding-bottom: 14px; margin-bottom: 18px;}}
+.drp-head .title {{font-size: 1.45rem; font-weight: 700; color: {INK}; letter-spacing: -0.02em;}}
+.drp-head .sub {{color: {MUTED}; font-size: 0.88rem;}}
+.drp-chip {{display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.78rem;
+    font-weight: 600; background: {PANEL}; border: 1px solid {LINE}; color: {INK};}}
+.drp-chip.accent {{border-color: {ACCENT}55; color: {ACCENT};}}
+
+/* level cards */
+.drp-card {{background: {PANEL}; border: 1px solid {LINE}; border-radius: 12px;
+    padding: 14px 16px 12px; position: relative; overflow: hidden;}}
+.drp-card::before {{content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--c);}}
+.drp-card .lab {{display: flex; align-items: center; gap: 7px; color: {MUTED};
+    font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;}}
+.drp-card .dot {{width: 9px; height: 9px; border-radius: 50%; background: var(--c);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent);}}
+.drp-card .val {{font-size: 2.1rem; font-weight: 700; color: {INK}; line-height: 1.15; margin-top: 2px;}}
+.drp-card .val small {{font-size: 0.85rem; font-weight: 500; color: {MUTED};}}
+.drp-card .bar {{height: 3px; border-radius: 2px; background: {FAINT}; margin-top: 10px;}}
+.drp-card .bar span {{display: block; height: 100%; border-radius: 2px; background: var(--c);}}
+
+/* chrome */
+[data-testid="stSidebar"] {{border-right: 1px solid {LINE};}}
+[data-testid="stSidebar"] .block-container {{padding-top: 2rem;}}
+div[data-testid="stTabs"] button[data-baseweb="tab"] {{font-weight: 600; color: {MUTED};}}
+div[data-testid="stTabs"] button[aria-selected="true"] {{color: {INK};}}
+div[data-testid="stTabs"] [data-baseweb="tab-list"] {{gap: 4px; border-bottom: 1px solid {LINE};}}
+[data-testid="stDataFrame"], [data-testid="stPlotlyChart"] {{
+    border: 1px solid {LINE}; border-radius: 12px; overflow: hidden; background: {PANEL};}}
+[data-testid="stPlotlyChart"] > div {{padding: 6px;}}
+[data-testid="stImage"] img {{border-radius: 10px;}}
+hr {{border-color: {LINE};}}
+</style>
+""", unsafe_allow_html=True)
 
 
 def _outputs_dir() -> Path:
@@ -80,6 +144,16 @@ def load_explainer(out: str, target: str):
     return None
 
 
+def map_view(df: pd.DataFrame, height_px: int, pad: float = 1.3) -> tuple[dict, float]:
+    """Centre and zoom that fit every district: plotly's scatter_map does not auto-fit,
+    and without this it falls back to (0, 0) in the Gulf of Guinea."""
+    lat0, lat1 = float(df["lat"].min()), float(df["lat"].max())
+    lon0, lon1 = float(df["lon"].min()), float(df["lon"].max())
+    centre = dict(lat=(lat0 + lat1) / 2, lon=(lon0 + lon1) / 2)
+    span = max((lat1 - lat0) * pad, 1e-3)
+    return centre, float(np.clip(np.log2(360 * height_px / (256 * span)), 1.0, 12.0))
+
+
 def describe_driver(feature: str, value: float) -> str:
     label, unit = FEATURE_LABELS.get(feature, (feature.replace("_", " "), ""))
     return f"{label} {value:,.1f} {unit}".strip()
@@ -112,7 +186,7 @@ best = summary["best_model_per_hazard"]
 names = regions.set_index("region_id")["name"].to_dict()
 
 # ------------------------------------------------------------------ sidebar
-st.sidebar.title("Disaster Risk Early Warning")
+st.sidebar.header("Controls")
 hazard = st.sidebar.selectbox("Hazard", hazards, format_func=str.capitalize)
 horizon = st.sidebar.selectbox("Forecast horizon", horizons, index=len(horizons) - 1, format_func=lambda h: f"{h} hours")
 model = st.sidebar.selectbox("Model", models, index=models.index(best[hazard]) if best[hazard] in models else 0,
@@ -129,6 +203,17 @@ if label_source == "simulated":
                        "They are not real-world performance.")
 st.sidebar.info("This is a decision-support tool. Official disaster-management authorities remain "
                 "responsible for issuing warnings and acting on them.")
+
+span = preds["timestamp"].agg(["min", "max"])
+st.markdown(
+    f"""<div class="drp-head">
+      <span class="title">Disaster Risk Early Warning</span>
+      <span class="drp-chip accent">{hazard.capitalize()}</span>
+      <span class="drp-chip">next {horizon} h</span>
+      <span class="drp-chip">{DISPLAY_NAMES[model]}</span>
+      <span class="sub">{len(regions)} districts, Kerala &middot; test period
+        {span['min']:%d %b %Y} to {span['max']:%d %b %Y}</span>
+    </div>""", unsafe_allow_html=True)
 
 tab_board, tab_trend, tab_alerts, tab_eval, tab_data = st.tabs(
     ["Risk board", "Trends", "Alerts", "Model evaluation", "Data & validation"])
@@ -154,25 +239,41 @@ with tab_board:
         snap["event_in_window"] = np.where(snap[target] == 1, "yes", "")
 
         counts = snap["risk_level"].value_counts()
-        cols = st.columns(4)
-        for col, lvl in zip(cols, RISK_LEVELS):
-            col.metric(f"{lvl} risk regions", int(counts.get(lvl, 0)))
+        total = len(snap)
+        for col, lvl in zip(st.columns(4), RISK_LEVELS):
+            n = int(counts.get(lvl, 0))
+            col.markdown(
+                f"""<div class="drp-card" style="--c:{RISK_COLORS[lvl]}">
+                  <div class="lab"><span class="dot"></span>{lvl}</div>
+                  <div class="val">{n}<small> / {total} districts</small></div>
+                  <div class="bar"><span style="width:{100 * n / total:.0f}%"></span></div>
+                </div>""", unsafe_allow_html=True)
+        st.write("")
 
-        left, right = st.columns([1.1, 1])
+        MAP_H = 620
+        left, right = st.columns([1.05, 1], gap="medium")
         with left:
+            centre, zoom = map_view(snap, MAP_H)
             fig = px.scatter_map(
-                snap, lat="lat", lon="lon", color="risk_level", size=np.clip(snap["probability"], 0.05, 1) * 30 + 8,
+                snap, lat="lat", lon="lon", color="risk_level",
+                size=np.clip(snap["probability"], 0.06, 1.0), size_max=34,
                 color_discrete_map=RISK_COLORS, category_orders={"risk_level": RISK_LEVELS},
-                hover_name="name", hover_data={"probability": ":.3f", "risk_level": True, "lat": False, "lon": False},
-                zoom=6.2, height=560, map_style="carto-positron",
+                hover_name="name", text="region_id",
+                hover_data={"probability": ":.3f", "risk_level": True, "lat": False, "lon": False,
+                            "region_id": False},
+                center=centre, zoom=zoom, height=MAP_H, map_style="carto-darkmatter",
             )
-            fig.update_layout(margin=dict(l=0, r=0, t=30, b=0), legend_title_text="Risk level",
-                              title=f"{hazard.capitalize()} risk, next {horizon} h, {ts:%d %b %Y %H:%M}")
+            fig.update_traces(marker=dict(opacity=0.9), textposition="top center",
+                              textfont=dict(color="#c7cedb", size=10))
+            fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), legend_title_text="",
+                              legend=dict(orientation="h", y=0.99, x=0.01, yanchor="top",
+                                          bgcolor="rgba(22,27,38,0.85)", bordercolor=LINE, borderwidth=1,
+                                          font=dict(color=INK, size=12)))
             st.plotly_chart(fig, width="stretch")
         with right:
             table = snap.sort_values("probability", ascending=False)[
                 ["name", "probability", "risk_level", "action", "key_drivers", "event_in_window"]]
-            st.dataframe(table, hide_index=True, width="stretch", height=560,
+            st.dataframe(table, hide_index=True, width="stretch", height=MAP_H,
                          column_config={"probability": st.column_config.ProgressColumn(
                              "Probability", min_value=0.0, max_value=1.0, format="%.3f"),
                              "event_in_window": "Event occurred",
@@ -198,14 +299,16 @@ with tab_trend:
     fig = go.Figure()
     edges = [0, *thresholds, 1]
     for lvl, a, b in zip(RISK_LEVELS, edges[:-1], edges[1:]):
-        fig.add_hrect(y0=a, y1=b, fillcolor=RISK_COLORS[lvl], opacity=0.08, line_width=0,
-                      annotation_text=lvl, annotation_position="right")
+        fig.add_hrect(y0=a, y1=b, fillcolor=RISK_COLORS[lvl], opacity=0.10, line_width=0,
+                      annotation_text=lvl, annotation_position="right",
+                      annotation_font=dict(color=MUTED, size=11))
     for m in compare:
         fig.add_trace(go.Scatter(x=g["timestamp"], y=g[f"p_{m}__{target}"], mode="lines", name=DISPLAY_NAMES[m],
                                  line=dict(color=MODEL_COLORS[m], width=2)))
     ev = g[g[f"{hazard}_event"] == 1]
     fig.add_trace(go.Scatter(x=ev["timestamp"], y=np.full(len(ev), 0.97), mode="markers", name="Event onset",
-                             marker=dict(symbol="triangle-down", size=12, color="#0b0b0b")))
+                             marker=dict(symbol="triangle-down", size=12, color=INK,
+                                           line=dict(color=BG, width=1))))
     fig.update_layout(height=420, yaxis=dict(range=[0, 1], title="Probability"), hovermode="x unified",
                       title=f"{names[rid]}: probability of a {hazard} within {horizon} h",
                       margin=dict(l=10, r=60, t=50, b=10), legend=dict(orientation="h", y=-0.15))
@@ -215,8 +318,9 @@ with tab_trend:
     fr = feats[feats["region_id"] == rid].set_index("timestamp").loc[g["timestamp"]]
     c1, c2 = st.columns(2)
     for col, (fname, title) in zip([c1, c2], [("rain_sum_24h", "24 h rainfall (mm)"), ("river_level_m", "River level (m)")]):
-        f2 = go.Figure(go.Scatter(x=fr.index, y=fr[fname], mode="lines", line=dict(color="#2a78d6", width=1.5)))
-        f2.update_layout(height=250, title=title, margin=dict(l=10, r=10, t=40, b=10))
+        f2 = go.Figure(go.Scatter(x=fr.index, y=fr[fname], mode="lines", fill="tozeroy",
+                                  line=dict(color=ACCENT, width=1.5), fillcolor="rgba(79,157,255,0.14)"))
+        f2.update_layout(height=250, title=title, margin=dict(l=10, r=10, t=44, b=10))
         col.plotly_chart(f2, width="stretch")
 
 # ------------------------------------------------------------------- alerts
@@ -282,6 +386,7 @@ with tab_eval:
     pick = st.selectbox("Figure", figs, format_func=lambda p: p.stem)
     if pick:
         st.image(str(pick))
+        st.caption("Report figures are rendered on the light print palette for the written report.")
 
 # ---------------------------------------------------------- data/validation
 with tab_data:
